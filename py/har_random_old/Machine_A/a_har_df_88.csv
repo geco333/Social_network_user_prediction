@@ -1,0 +1,49 @@
+,comment,pageref,request.bodySize,request.comment,request.headersSize,request.httpVersion,request.method,request.queryString.name,request.url,response._error,response.bodySize,response.comment,response.content.comment,response.content.mimeType,response.content.size,response.headersSize,response.httpVersion,response.redirectURL,response.status,response.statusText,serverIPAddress,startedDateTime,time,timings.blocked,timings.comment,timings.connect,timings.dns,timings.receive,timings.send,timings.ssl,timings.wait
+0,,,0,,478,HTTP/1.1,GET,value,http://www.drivemeinsane.com/cgi-bin/newgetmesgxml2.cgi?instance=1858713948&RANDOM=.0.19779319805216056,,0,,,text/html;charset=UTF-8,0,148,HTTP/1.1,,200,OK,50.23.33.202,2019-10-05T13:10:36.197+03:00,220,-1,,-1,-1,0,0,-1,219
+1,,,0,,466,HTTP/1.1,GET,,https://www.duolingo.com/,,2248,,,text/html; charset=UTF-8,0,1008,HTTP/1.1,,200,OK,54.87.7.25,2019-10-05T13:10:37.785+03:00,3470,0,,2511,86,4,10,2477,858
+2,,,0,,376,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/js/vendor-29d23e06.js,,291754,,,application/javascript,0,539,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:40.034+03:00,1640,0,,1219,91,266,4,1170,58
+3,,,0,,377,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/strings/en-3c552c7d.js,,25462,,,application/javascript,0,538,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:40.046+03:00,1412,0,,1222,93,48,2,1177,46
+4,,,0,,373,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/js/app-0e22125a.js,,315052,,,application/javascript,0,539,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:40.051+03:00,1666,0,,1226,94,298,1,1180,46
+5,,,0,,390,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/css/ltr-71c99cc9.css,,61758,,,text/css,0,524,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:40.055+03:00,1407,0,,1203,91,70,2,1160,39
+6,,,68,,797,HTTP/1.1,POST,,https://www.duolingo.com/2017-06-30/tracking-status,,2,,,application/json; charset=UTF-8,0,1160,HTTP/1.1,,200,OK,54.87.7.25,2019-10-05T13:10:41.347+03:00,565,-1,,-1,-1,0,0,-1,563
+7,,,0,,702,HTTP/1.1,GET,value,https://www.duolingo.com/2017-06-30/config?_=1570270241328,,1206,,,application/json; charset=UTF-8,0,680,HTTP/1.1,,200,OK,54.87.7.25,2019-10-05T13:10:41.795+03:00,601,0,,390,0,0,1,359,208
+8,,,0,,477,HTTP/1.1,GET,value,http://www.drivemeinsane.com/cgi-bin/newgetmesgxml2.cgi?instance=1858713948&RANDOM=.0.7064107122531915,,0,,,text/html;charset=UTF-8,0,148,HTTP/1.1,,200,OK,50.23.33.202,2019-10-05T13:10:41.810+03:00,228,-1,,-1,-1,0,6,-1,220
+9,,,0,,371,HTTP/1.1,GET,value,https://www.googletagmanager.com/gtm.js?id=GTM-TX6Z97C,,22046,,,application/javascript; charset=UTF-8,0,624,HTTP/1.1,,200,OK,216.58.207.72,2019-10-05T13:10:41.899+03:00,1274,0,,1117,0,41,1,1082,112
+10,,,0,,449,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/hamburger-menu.svg,,232,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:41.940+03:00,65,-1,,-1,-1,1,0,-1,63
+11,,,0,,447,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/star-pattern.svg,,1333,,,image/svg+xml,0,529,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:41.943+03:00,61,-1,,-1,-1,0,0,-1,60
+12,,,0,,450,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/earth-two-rings.svg,,956,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:41.947+03:00,59,-1,,-1,-1,0,1,-1,57
+13,,,0,,446,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/juicy-happy.svg,,2184,,,image/svg+xml,0,529,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:41.957+03:00,52,-1,,-1,-1,0,0,-1,51
+14,,,0,,444,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/play-icon.svg,,249,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.115+03:00,198,0,,153,0,1,2,101,41
+15,,,0,,450,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/laptop-features.svg,,698,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.115+03:00,198,0,,154,0,0,0,104,42
+16,,,0,,450,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/feature-speaker.svg,,394,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.248+03:00,52,-1,,-1,-1,2,0,-1,49
+17,,,0,,448,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/feature-check.svg,,293,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.250+03:00,55,-1,,-1,-1,0,0,-1,54
+18,,,0,,449,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/feature-lingot.svg,,389,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.251+03:00,52,-1,,-1,-1,2,0,-1,50
+19,,,0,,450,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/badge-app-store.svg,,463,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.259+03:00,45,-1,,-1,-1,0,0,-1,44
+20,,,0,,456,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/duo-plus-fly-circle-2.svg,,3190,,,image/svg+xml,0,529,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.259+03:00,41,-1,,-1,-1,0,0,-1,40
+21,,,0,,449,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/feature-streak.svg,,454,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.260+03:00,43,-1,,-1,-1,0,0,-1,42
+22,,,0,,451,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/badge-play-store.svg,,618,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.539+03:00,50,-1,,-1,-1,0,0,-1,49
+23,,,0,,447,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/duo-traveler.svg,,3419,,,image/svg+xml,0,529,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.551+03:00,42,-1,,-1,-1,2,2,-1,37
+24,,,0,,449,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/laptop-schools.svg,,2078,,,image/svg+xml,0,529,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.568+03:00,48,-1,,-1,-1,11,0,-1,35
+25,,,0,,369,HTTP/1.1,GET,,https://client.perimeterx.net/PXAsQJFZ9W/main.min.js,,26764,,,application/javascript; charset=utf-8,0,617,HTTP/1.1,,200,OK,151.101.18.110,2019-10-05T13:10:42.722+03:00,1476,0,,1259,53,57,1,1229,104
+26,,,0,,412,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/images/logo-white.svg,,993,,,image/svg+xml,0,528,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:42.866+03:00,40,-1,,-1,-1,1,2,-1,35
+27,,,0,,765,HTTP/1.1,GET,value,https://www.duolingo.com/api/1/courses/list?_=1570270242876,,2907,,,application/json; charset=UTF-8,0,680,HTTP/1.1,,200,OK,54.87.7.25,2019-10-05T13:10:42.897+03:00,198,-1,,-1,-1,0,0,-1,196
+28,,,0,,454,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/fonts/DINNextRoundedLTPro-Bold.woff,,56944,,,binary/octet-stream,0,710,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:43.110+03:00,298,0,,179,0,67,0,136,50
+29,,,0,,550,HTTP/1.1,GET,value,http://www.drivemeinsane.com/cgi-bin/getstatexml.cgi?cam=5&cookiename=Anonymous_User33668744&pagename=Main&instance=98286649&RANDOM=.0.7762161062869206,,595,,,text/xml,0,142,HTTP/1.1,,200,OK,50.23.33.202,2019-10-05T13:10:43.112+03:00,398,-1,,-1,-1,171,0,-1,225
+30,,,0,,457,HTTP/1.1,GET,,https://d35aaqx5ub95lt.cloudfront.net/fonts/DINNextRoundedLTPro-Regular.woff,,54921,,,binary/octet-stream,0,710,HTTP/1.1,,200,OK,13.226.6.196,2019-10-05T13:10:43.119+03:00,276,0,,165,0,70,0,134,38
+31,,,0,,754,HTTP/1.1,GET,,https://www.duolingo.com/gcm-service-worker.js,,2449,,,application/javascript,0,716,HTTP/1.1,,200,OK,54.87.7.25,2019-10-05T13:10:43.246+03:00,181,-1,,-1,-1,0,0,-1,180
+32,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.366+03:00,670,0,,489,0,1,0,463,178
+33,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.368+03:00,664,0,,486,0,0,0,463,175
+34,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.377+03:00,654,0,,481,0,0,0,446,171
+35,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.383+03:00,663,0,,499,0,0,1,465,161
+36,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.398+03:00,2229,0,,2024,39,0,0,1971,164
+37,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.564+03:00,176,-1,,-1,-1,1,2,-1,172
+38,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.564+03:00,175,-1,,-1,-1,0,0,-1,174
+39,,,0,,454,HTTP/1.1,OPTIONS,,https://excess.duolingo.com/batch,,0,,,,0,397,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.564+03:00,174,-1,,-1,-1,7,0,-1,166
+40,,,825,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,,34,,,,0,358,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.565+03:00,283,-1,,-1,-1,0,1,-1,281
+41,,,804,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,,34,,,,0,358,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.575+03:00,245,-1,,-1,-1,0,0,-1,245
+42,,,918,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,,34,,,,0,358,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.690+03:00,587,0,,298,0,1,1,276,285
+43,,,919,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,,34,,,,0,358,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.760+03:00,283,-1,,-1,-1,0,0,-1,282
+44,,,852,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,,34,,,,0,358,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.760+03:00,287,-1,,-1,-1,0,1,-1,285
+45,,,860,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,,34,,,,0,358,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.762+03:00,281,-1,,-1,-1,0,0,-1,280
+46,,,902,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,,34,,,,0,358,HTTP/1.1,,200,OK,3.222.33.131,2019-10-05T13:10:43.825+03:00,282,-1,,-1,-1,0,0,-1,281
+47,,,901,,434,HTTP/1.1,POST,,https://excess.duolingo.com/batch,No response received,-1,,,,0,-1,unknown,,0,,3.222.33.131,2019-10-05T13:10:43.851+03:00,2,-1,,-1,-1,0,2,-1,0

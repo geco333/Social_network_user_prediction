@@ -1,0 +1,9 @@
+[INFO  2019-08-29T16:49:03,656 net.lightbody.bmp.proxy.Main] (main) Starting BrowserMob Proxy version 2.1.4 
+[INFO  2019-08-29T16:49:03,695 org.eclipse.jetty.util.log] (main) jetty-7.x.y-SNAPSHOT 
+[INFO  2019-08-29T16:49:04,011 org.eclipse.jetty.util.log] (main) started o.e.j.s.ServletContextHandler{/,null} 
+[INFO  2019-08-29T16:49:04,142 org.eclipse.jetty.util.log] (main) Started SelectChannelConnector@localhost:8080 
+[INFO  2019-08-29T16:49:18,940 org.littleshoot.proxy.impl.DefaultHttpProxyServer] (qtp2050320909-19) Starting proxy at address: 0.0.0.0/0.0.0.0:8081 
+[INFO  2019-08-29T16:49:18,983 org.littleshoot.proxy.impl.DefaultHttpProxyServer] (qtp2050320909-19) Proxy listening with TCP transport 
+[INFO  2019-08-29T16:49:19,578 org.littleshoot.proxy.impl.DefaultHttpProxyServer] (qtp2050320909-19) Proxy started at address: /0:0:0:0:0:0:0:0:8081 
+[INFO  2019-08-29T16:53:18,083 org.littleshoot.proxy.impl.DefaultHttpProxyServer] (LittleProxy-JVM-shutdown-hook) Shutting down proxy server immediately (non-graceful) 
+[INFO  2019-08-29T16:53:18,088 org.littleshoot.proxy.impl.DefaultHttpProxyServer] (LittleProxy-JVM-shutdown-hook) Closing all channels (non-graceful) 
