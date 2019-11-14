@@ -600,18 +600,33 @@ class UsersAnalyzer:
     def _init(self):
         if 't' in self.flags:
             _ = reduce(lambda a, b: a + b, [x.types_counts for x in self.data])
-            self.x_fit = self.dict_vectorizer.fit_transform(_)
-        elif 's' in self.flags:
-            self.x_fit = np.array(reduce(lambda a, b: a + b, [x.sums for x in self.data]))
-        elif 'w' in self.flags:
-            self.x_fit = np.array(reduce(lambda a, b: a + b, [x.weights for x in self.data]))
+
+            if type(self.x_fit) == np.ndarray:
+                np.concatenate([self.x_fit, _], axis=1)
+            else:
+                self.x_fit = self.dict_vectorizer.fit_transform(_)
+        if 's' in self.flags:
+            _ = reduce(lambda a, b: a + b, [x.sums for x in self.data])
+
+            if type(self.x_fit) == np.ndarray:
+                _ = np.array(_).reshape(self.x_fit.shape[0], 2)
+                np.concatenate([self.x_fit, _], axis=1)
+            else:
+                self.x_fit = np.array(_)
+        if 'w' in self.flags:
+            _ = np.array(reduce(lambda a, b: a + b, [x.weights for x in self.data]))
+
+            if type(self.x_fit) == np.ndarray:
+                np.concatenate([self.x_fit, _])
+            else:
+                self.x_fit = np.array(_)
 
         self.y_fit_true = np.array(reduce(lambda a, b: a + b,
                                           [[i] * len(self.data[i].types_counts) for i in range(len(self.data))]))
 
 
     def _classify(self):
-        sss = StratifiedShuffleSplit(n_splits=len(self.data), test_size=0.5)
+        sss = StratifiedShuffleSplit(n_splits=len(self.data), test_size=0.33)
         _, __ = [], []
 
         for fit_i, train_i in sss.split(self.x_fit, self.y_fit_true):
@@ -623,7 +638,7 @@ class UsersAnalyzer:
         self.x_fit = _
         self.y_fit_true = __
 
-        return svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true)
+        return svm.LinearSVC(max_iter=50000).fit(self.x_fit, self.y_fit_true)
 
 
     def plot_confusion_matrix(self, title=None, cmap=plt.cm.Blues):
@@ -755,4 +770,6 @@ def run_analyzers(fp, rd):
 
 users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
 fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
-ua = UsersAnalyzer(fp, flags='t')
+ua = UsersAnalyzer(fp, flags='ts')
+
+ua.plot_confusion_matrix()
