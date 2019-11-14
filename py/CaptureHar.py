@@ -602,9 +602,9 @@ class UsersAnalyzer:
             _ = reduce(lambda a, b: a + b, [x.types_counts for x in self.data])
             self.x_fit = self.dict_vectorizer.fit_transform(_)
         elif 's' in self.flags:
-            self.x_fit = reduce(lambda a, b: a + b, [x.sums for x in self.data])
+            self.x_fit = np.array(reduce(lambda a, b: a + b, [x.sums for x in self.data]))
         elif 'w' in self.flags:
-            self.x_fit = reduce(lambda a, b: a + b, [x.weights for x in self.data])
+            self.x_fit = np.array(reduce(lambda a, b: a + b, [x.weights for x in self.data]))
 
         self.y_fit_true = np.array(reduce(lambda a, b: a + b,
                                           [[i] * len(self.data[i].types_counts) for i in range(len(self.data))]))
@@ -624,6 +624,47 @@ class UsersAnalyzer:
         self.y_fit_true = __
 
         return svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true)
+
+
+    def plot_confusion_matrix(self, title=None, cmap=plt.cm.Blues):
+        """This function prints and plots the confusion matrix.
+        Normalization can be applied by setting `normalize=True`.
+        """
+
+        # Compute confusion matrix
+        cm = confusion_matrix(self.y_predict_true, self.predictions)
+        # Only use the labels that appear in the data
+        classes = unique_labels(self.y_fit_true, self.y_predict_true)
+
+        print(classification_report(self.y_predict_true, self.predictions, labels=range(len(self.data)),
+                                    target_names=[str(i) for i in range(len(self.data))]))
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+        ax.figure.colorbar(im, ax=ax)
+        # We want to show all ticks...
+        ax.set(xticks=np.arange(cm.shape[1]),
+               yticks=np.arange(cm.shape[0]),
+               # ... and label them with the respective list entries
+               xticklabels=classes, yticklabels=classes,
+               title=title,
+               ylabel='True label',
+               xlabel='Predicted label')
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                 rotation_mode="anchor")
+
+        # Loop over data dimensions and create text annotations.
+        thresh = cm.max() / 2.
+
+        for i in range(cm.shape[0]):
+            for j in range(cm.shape[1]):
+                ax.text(j, i, format(cm[i, j], 'd'),
+                        ha="center", va="center",
+                        color="white" if cm[i, j] > thresh else "black")
+
+        fig.tight_layout()
 
 
 def page_func(driver, page):
