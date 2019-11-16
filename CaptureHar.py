@@ -697,7 +697,7 @@ class UsersAnalyzer:
         ax.figure.colorbar(im, ax=ax)
         # We want to show all ticks...
         ax.set(xticks=np.arange(cm.shape[1]),
-               yticks=np.arange(cm.shape[0]),
+               yticks=np.flip(np.arange(cm.shape[0])),
                # ... and label them with the respective list entries
                xticklabels=classes, yticklabels=classes,
                title=title,
@@ -713,9 +713,9 @@ class UsersAnalyzer:
 
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]):
-                ax.text(j, i, format(cm[i, j], 'd'),
+                ax.text(j, i, format(cm[cm.shape[0] - i - 1, j], 'd'),
                         ha="center", va="center",
-                        color="white" if cm[i, j] > thresh else "black")
+                        color="black" if cm[i, j] > thresh else "red")
 
         fig.tight_layout()
 
@@ -809,7 +809,7 @@ def run_analyzers(fp, rd):
 users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
 
 fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
-ua = UsersAnalyzer(fp, flags='s', test_size=0.1)
+ua = UsersAnalyzer(fp, flags='s', test_size=0.4)
 
 ua.print_scores()
 ua.plot_confusion_matrix()
