@@ -14,7 +14,8 @@ from selenium.webdriver.common.by import By
 from browsermobproxy import Server
 from collections import Counter
 from sklearn import svm
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, auc, roc_curve
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.utils.multiclass import unique_labels
 from sklearn.model_selection import cross_val_score
@@ -584,15 +585,16 @@ class CombinedAnalyzer(Analyzer):
 
 
 class UsersAnalyzer:
-    def __init__(self, data: list, flags: str = 't'):
+    def __init__(self, data: list, flags: str = 't', test_size: float = 0.25):
         self.flags = flags
         self.data = data
         self.dict_vectorizer = DictVectorizer(sparse=False)
         self.x_fit = []
         self.y_fit_true = []
+        self._split_i = {}
 
         self._init()
-        self.clf = self._classify()
+        self.clf = self._classify(test_size)
         self.predictions = self.clf.predict(self.x_predict)
         self.score = cross_val_score(self.clf, self.x_fit, y=self.y_fit_true, cv=5)
 
@@ -625,20 +627,59 @@ class UsersAnalyzer:
                                           [[i] * len(self.data[i].types_counts) for i in range(len(self.data))]))
 
 
-    def _classify(self):
-        sss = StratifiedShuffleSplit(n_splits=len(self.data), test_size=0.33)
+    def _classify(self, test_size):
+        sss = StratifiedShuffleSplit(n_splits=len(self.data), test_size=test_size)
         _, __ = [], []
 
-        for fit_i, train_i in sss.split(self.x_fit, self.y_fit_true):
+        for i, (fit_i, train_i) in enumerate(sss.split(self.x_fit, self.y_fit_true)):
+            self._split_i[i] = (fit_i, train_i)
+
             _.extend(self.x_fit[fit_i])
-            self.x_predict = self.x_fit[train_i]
             __.extend(self.y_fit_true[fit_i])
+
+            self.x_predict = self.x_fit[train_i]
             self.y_predict_true = self.y_fit_true[train_i]
 
         self.x_fit = _
         self.y_fit_true = __
 
-        return svm.LinearSVC(max_iter=50000).fit(self.x_fit, self.y_fit_true)
+        clf = OneVsRestClassifier(svm.SVC(gamma='scale', probability=True)).fit(self.x_fit, self.y_fit_true)
+
+        return clf
+
+
+    def print_scores(self):
+        print(classification_report(self.y_predict_true, self.predictions, labels=range(len(self.data)),
+                                    target_names=[str(i) for i in range(len(self.data))]))
+
+
+    def plot_roc_auc(self):
+        y_score = self.clf.decision_function(self.x_predict)
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+
+        for i in range(len(self.data)):
+            fpr[i], tpr[i], _ = roc_curve(self.y_predict_true, y_score[:, i], pos_label=i)
+            roc_auc[i] = auc(fpr[i], tpr[i])
+
+        plt.figure()
+
+        colors = ['b', 'g', 'r', 'c']
+        linestyles = ['-', '--', '-.', ':']
+
+        for i in range(len(self.data)):
+            plt.plot(fpr[i], tpr[i], color=colors[i], linestyle=linestyles[i], lw=2,
+                     label=f'{i} ROC curve (area = {roc_auc[i]:.2f})')
+            plt.plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
+            plt.xlim([0.0, 1.0])
+            plt.ylim([0.0, 1.05])
+            plt.xlabel('False Positive Rate')
+            plt.ylabel('True Positive Rate')
+            plt.title('Receiver operating characteristic example')
+            plt.legend(loc="lower right")
+
+        plt.show()
 
 
     def plot_confusion_matrix(self, title=None, cmap=plt.cm.Blues):
@@ -650,9 +691,6 @@ class UsersAnalyzer:
         cm = confusion_matrix(self.y_predict_true, self.predictions)
         # Only use the labels that appear in the data
         classes = unique_labels(self.y_fit_true, self.y_predict_true)
-
-        print(classification_report(self.y_predict_true, self.predictions, labels=range(len(self.data)),
-                                    target_names=[str(i) for i in range(len(self.data))]))
 
         fig, ax = plt.subplots()
         im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -769,7 +807,9 @@ def run_analyzers(fp, rd):
 
 
 users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
-fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
-ua = UsersAnalyzer(fp, flags='ts')
 
-ua.plot_confusion_matrix()
+fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
+ua = UsersAnalyzer(fp, flags='s', test_size=0.5)
+
+ua.print_scores()
+ua.plot_roc_auc()
