@@ -693,7 +693,7 @@ class UsersAnalyzer:
         classes = unique_labels(self.y_fit_true, self.y_predict_true)
 
         fig, ax = plt.subplots()
-        im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+        im = ax.imshow(cm, interpolation='nearest', extent=[-.5, cm.shape[1] - .5, -.5, cm.shape[0] - .5], cmap=cmap)
         ax.figure.colorbar(im, ax=ax)
         # We want to show all ticks...
         ax.set(xticks=np.arange(cm.shape[1]),
@@ -809,7 +809,8 @@ def run_analyzers(fp, rd):
 users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
 
 fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
-ua = UsersAnalyzer(fp, flags='s', test_size=0.5)
+ua = UsersAnalyzer(fp, flags='s', test_size=0.1)
 
 ua.print_scores()
+ua.plot_confusion_matrix()
 ua.plot_roc_auc()
