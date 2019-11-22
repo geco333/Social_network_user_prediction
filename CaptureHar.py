@@ -375,11 +375,11 @@ class Analyzer:
         """
 
         # Compute confusion matrix
-        cm = confusion_matrix(self.y_predict_true, self.predictions)
+        cm = confusion_matrix(self.y_predict_true, self.predictions[0])
         # Only use the labels that appear in the data
         classes = unique_labels(self.y_fit_true, self.y_predict_true)
 
-        print(classification_report(self.y_predict_true, self.predictions, labels=[0, 1],
+        print(classification_report(self.y_predict_true, self.predictions[0], labels=[0, 1],
                                     target_names=['facebook', 'other']))
 
         fig, ax = plt.subplots()
@@ -626,8 +626,7 @@ class UsersAnalyzer:
 
         self._init()
         self.clf = self._classify(test_size)
-        self.predictions = self.clf.predict(self.x_predict)
-        self.score = cross_val_score(self.clf, self.x_fit, y=self.y_fit_true, cv=5)
+        self.predictions = [c.predict(self.x_predict) for c in self.clf]
 
 
     def _init(self):
@@ -674,7 +673,13 @@ class UsersAnalyzer:
         self.x_fit = _
         self.y_fit_true = __
 
-        clf = OneVsRestClassifier(svm.SVC(gamma='scale', probability=True)).fit(self.x_fit, self.y_fit_true)
+        # clf = OneVsRestClassifier(svm.SVC(gamma='scale', probability=True)).fit(self.x_fit, self.y_fit_true)
+        clf = [svm.SVC(gamma='scale', kernel='rbf', max_iter=5000).fit(self.x_fit, self.y_fit_true),
+               SGDClassifier().fit(self.x_fit, self.y_fit_true),
+               Perceptron().fit(self.x_fit, self.y_fit_true),
+               LogisticRegression(solver='lbfgs', multi_class='auto').fit(self.x_fit, self.y_fit_true),
+               svm.LinearSVC(max_iter=5000).fit(self.x_fit, self.y_fit_true),
+               LogisticRegressionCV(cv=5, multi_class='auto').fit(self.x_fit, self.y_fit_true)]
 
         return clf
 
@@ -685,32 +690,34 @@ class UsersAnalyzer:
 
 
     def plot_roc_auc(self):
-        y_score = self.clf.decision_function(self.x_predict)
-        fpr = dict()
-        tpr = dict()
-        roc_auc = dict()
-
-        for i in range(len(self.data)):
-            fpr[i], tpr[i], _ = roc_curve(self.y_predict_true, y_score[:, i], pos_label=i)
-            roc_auc[i] = auc(fpr[i], tpr[i])
-
-        plt.figure()
-
         colors = ['b', 'g', 'r', 'c']
         linestyles = ['-', '--', '-.', ':']
+        clf_names = {0: 'SVC', 1: 'SGDClassifier', 2: 'Perceptron',
+                     3: 'LogisticRegression', 3: 'LinearSVC', 4: 'LogisticRegressionCV'}
 
-        for i in range(len(self.data)):
-            plt.plot(fpr[i], tpr[i], color=colors[i], linestyle=linestyles[i], lw=2,
-                     label=f'{i} ROC curve (area = {roc_auc[i]:.2f})')
-            plt.plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
-            plt.xlim([0.0, 1.0])
-            plt.ylim([0.0, 1.05])
-            plt.xlabel('False Positive Rate')
-            plt.ylabel('True Positive Rate')
-            plt.title('Receiver operating characteristic example')
-            plt.legend(loc="lower right")
+        for i in range(len(self.clf) - 1):
+            y_score = self.clf[i].decision_function(self.x_predict)
+            fpr = dict()
+            tpr = dict()
+            roc_auc = dict()
 
-        plt.show()
+            plt.figure()
+            plt.title(clf_names[i])
+
+            for j in range(len(self.data)):
+                fpr[j], tpr[j], _ = roc_curve(self.y_predict_true, y_score[:, j], pos_label=j)
+                roc_auc[j] = auc(fpr[j], tpr[j])
+
+                plt.plot(fpr[j], tpr[j], color=colors[j], linestyle=linestyles[j], lw=2,
+                         label=f'{j}  area = {roc_auc[j]:.2f}')
+                plt.plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
+                plt.xlim([0.0, 1.0])
+                plt.ylim([0.0, 1.05])
+                plt.xlabel('False Positive Rate')
+                plt.ylabel('True Positive Rate')
+                plt.legend(loc="lower right")
+
+            plt.show()
 
 
     def plot_confusion_matrix(self, title=None, cmap=plt.cm.Blues):
@@ -837,19 +844,9 @@ def run_analyzers(fp, rd):
     ca.plot_roc_auc(title='CombinedAnalyzer')
 
 
-# users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
-#
-# fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
-# ua = UsersAnalyzer(fp, flags='s', test_size=0.4)
-#
-# ua.print_scores()
-# ua.plot_confusion_matrix()
-# ua.plot_roc_auc()
+users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
 
-fp = FingerPrint(Har.from_csv('./har_fit_old'), types=True)
-rd = ResponseData(Har.from_csv('./har_random_old'), types=True)
-ta = TypesAnalyzer(fp, rd, .5)
+fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
+ua = UsersAnalyzer(fp, flags='s', test_size=0.4)
 
-plt.figure()
-ta.plot_roc_auc()
-ta.plot_confusion_matrix()
+ua.plot_roc_auc()
