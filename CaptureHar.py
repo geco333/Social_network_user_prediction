@@ -14,6 +14,8 @@ from selenium.webdriver.common.by import By
 from browsermobproxy import Server
 from collections import Counter
 from sklearn import svm
+from sklearn.linear_model import SGDClassifier, Perceptron, LogisticRegression, LogisticRegressionCV
+from sklearn import neighbors
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, auc, roc_curve
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
@@ -364,11 +366,11 @@ class Analyzer:
         self.x_predict = []
         self.y_fit_true = []
         self.y_predict_true = []
+        self.clf = []
 
 
     def plot_confusion_matrix(self, title=None, cmap=plt.cm.Blues):
-        """
-        This function prints and plots the confusion matrix.
+        """This function prints and plots the confusion matrix.
         Normalization can be applied by setting `normalize=True`.
         """
 
@@ -381,11 +383,11 @@ class Analyzer:
                                     target_names=['facebook', 'other']))
 
         fig, ax = plt.subplots()
-        im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+        im = ax.imshow(cm, interpolation='nearest', extent=[-.5, cm.shape[1] - .5, -.5, cm.shape[1] - .5], cmap=cmap)
         ax.figure.colorbar(im, ax=ax)
         # We want to show all ticks...
         ax.set(xticks=np.arange(cm.shape[1]),
-               yticks=np.arange(cm.shape[0]),
+               yticks=np.flip(np.arange(cm.shape[0])),
                # ... and label them with the respective list entries
                xticklabels=classes, yticklabels=classes,
                title=title,
@@ -393,31 +395,47 @@ class Analyzer:
                xlabel='Predicted label')
 
         # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-                 rotation_mode="anchor")
+        plt.setp(ax.get_xticklabels(), ha="center")
+        plt.setp(ax.get_yticklabels(), va="center")
 
         # Loop over data dimensions and create text annotations.
         thresh = cm.max() / 2.
 
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]):
-                ax.text(j, i, format(cm[i, j], 'd'),
-                        ha="center", va="center",
-                        color="white" if cm[i, j] > thresh else "black")
+                ax.text(j, i, format(cm[cm.shape[1] - i - 1, j], 'd'), ha="center", va="center",
+                        color="red" if cm[i, j] > thresh else "green")
 
         fig.tight_layout()
 
-        return ax
+
+    def plot_roc_auc(self, title=''):
+        clf_names = {0: 'SVC', 1: 'SGDClassifier', 2: 'Perceptron',
+                     3: 'LogisticRegression', 3: 'LinearSVC', 4: 'LogisticRegressionCV'}
+
+        for i, c in enumerate(self.clf):
+            y_score = c.decision_function(self.x_predict)
+
+            fpr, tpr, _ = roc_curve(self.y_predict_true, y_score)
+            roc_auc = auc(fpr, tpr)
+
+            plt.plot(fpr, tpr, lw=2, label=f'{clf_names[i]}  {roc_auc:.2f}')
+            plt.plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
+            plt.xlim([0.0, 1.0])
+            plt.ylim([0.0, 1.05])
+            plt.xlabel('False Positive Rate')
+            plt.ylabel('True Positive Rate')
+            plt.legend(loc="lower right")
 
 
 class TypesAnalyzer(Analyzer):
-    def __init__(self, fp: FingerPrint, rd: ResponseData):
+    def __init__(self, fp: FingerPrint, rd: ResponseData, test_size: float):
         super().__init__(fp, rd)
 
         self.dict_vectorizer = DictVectorizer(sparse=False)
         self._init_data()
-        self.clf = self._classify()
-        self.predictions = self.clf.predict(self.x_predict)
+        self.clf = self._classify(test_size)
+        self.predictions = [c.predict(self.x_predict) for c in self.clf]
 
 
     def _init_data(self):
@@ -440,24 +458,29 @@ class TypesAnalyzer(Analyzer):
         self.y_predict_true = [0] * self.x_predict.shape[0]
 
 
-    def _classify(self):
+    def _classify(self, test_size):
         self.x_fit, self.x_predict, self.y_fit_true, self.y_predict_true = train_test_split(
             np.concatenate([self.x_fit.data, self.x_predict.data]),
             np.concatenate([self.y_fit_true, self.y_predict_true]),
-            test_size=0.9)
+            test_size=test_size)
 
-        return svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true)
+        clf = [svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true),
+               SGDClassifier().fit(self.x_fit, self.y_fit_true),
+               Perceptron().fit(self.x_fit, self.y_fit_true),
+               LogisticRegression(solver='lbfgs').fit(self.x_fit, self.y_fit_true),
+               svm.LinearSVC(max_iter=5000).fit(self.x_fit, self.y_fit_true),
+               LogisticRegressionCV(cv=5).fit(self.x_fit, self.y_fit_true)]
+
+        return clf
 
 
 class WeightsAnalyzer(Analyzer):
-    def __init__(self, fp: FingerPrint, rd: ResponseData):
+    def __init__(self, fp: FingerPrint, rd: ResponseData, test_size: float):
         super().__init__(fp, rd)
 
         self._init_data()
-        self.clf = self._classify()
-        self.predictions = self.clf.predict(self.x_predict)
-
-        self.score = cross_val_score(self.clf, self.x_fit, y=self.y_fit_true, cv=5, scoring='f1_weighted')
+        self.clf = self._classify(test_size)
+        self.predictions = [c.predict(self.x_predict) for c in self.clf]
 
 
     def _score_sessions(self, sessions: list, label: int):
@@ -482,30 +505,38 @@ class WeightsAnalyzer(Analyzer):
         self.x_predict, self.y_predict_true = self._score_sessions(self.rd.sessions, 0)
 
 
-    def _classify(self):
+    def _classify(self, test_size):
         self.x_fit, self.x_predict, self.y_fit_true, self.y_predict_true = train_test_split(
             np.concatenate([self.x_fit, self.x_predict]), np.concatenate([self.y_fit_true, self.y_predict_true]),
-            test_size=0.9)
+            test_size=test_size)
 
-        return svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true)
+        clf = [svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true),
+               SGDClassifier().fit(self.x_fit, self.y_fit_true),
+               Perceptron().fit(self.x_fit, self.y_fit_true),
+               LogisticRegression(solver='lbfgs').fit(self.x_fit, self.y_fit_true),
+               svm.LinearSVC().fit(self.x_fit, self.y_fit_true),
+               LogisticRegressionCV().fit(self.x_fit, self.y_fit_true)]
+
+        return clf
 
 
 class SumsAnalyzer(Analyzer):
-    def __init__(self, fp: FingerPrint, rd: ResponseData):
+    def __init__(self, fp: FingerPrint, rd: ResponseData, test_size: float):
         super().__init__(fp, rd)
 
-        self._init_data()
+        self._init_data(test_size)
         self.clf = self._classify()
         self.predictions = self.clf.predict(self.x_predict)
 
         self.score = cross_val_score(self.clf, self.x_fit, y=self.y_fit_true, cv=5, scoring='f1_weighted')
 
 
-    def _init_data(self):
+    def _init_data(self, test_size):
         length = min(len(self.fp.hars), len(self.rd.hars))
 
         self.x_fit, self.x_predict, self.y_fit_true, self.y_predict_true = train_test_split(
-            np.concatenate([self.fp.sums[:length], self.rd.sums[:length]]), [1] * length + [0] * length, test_size=0.9)
+            np.concatenate([self.fp.sums[:length], self.rd.sums[:length]]), [1] * length + [0] * length,
+            test_size=test_size)
 
 
     def _classify(self):
@@ -527,12 +558,12 @@ class SumsAnalyzer(Analyzer):
 
 
 class CombinedAnalyzer(Analyzer):
-    def __init__(self, fp: FingerPrint, rd: ResponseData):
+    def __init__(self, fp: FingerPrint, rd: ResponseData, test_size: float):
         super().__init__(fp, rd)
 
         self.dict_vectorizer = DictVectorizer(sparse=False)
         self._init_data()
-        self.clf = self._classify()
+        self.clf = self._classify(test_size)
         self.predictions = self.clf.predict(self.x_predict)
 
         self.score = cross_val_score(self.clf, self.x_fit, y=self.y_fit_true, cv=5, scoring='f1_weighted')
@@ -576,10 +607,10 @@ class CombinedAnalyzer(Analyzer):
                 self.x_predict[i][-1] += 1
 
 
-    def _classify(self):
+    def _classify(self, test_size):
         self.x_fit, self.x_predict, self.y_fit_true, self.y_predict_true = train_test_split(
             np.concatenate([self.x_fit, self.x_predict]), np.concatenate([self.y_fit_true, self.y_predict_true]),
-            test_size=0.9)
+            test_size=test_size)
 
         return svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true)
 
@@ -715,7 +746,7 @@ class UsersAnalyzer:
             for j in range(cm.shape[1]):
                 ax.text(j, i, format(cm[cm.shape[0] - i - 1, j], 'd'),
                         ha="center", va="center",
-                        color="black" if cm[i, j] > thresh else "red")
+                        color="red" if cm[i, j] > thresh else "green")
 
         fig.tight_layout()
 
@@ -800,17 +831,24 @@ def run_analyzers(fp, rd):
     ta = TypesAnalyzer(fp, rd)
     ca = CombinedAnalyzer(fp, rd)
 
-    wa.plot_confusion_matrix(title='WeightsAnalyzer')
-    sa.plot_confusion_matrix(title='SumsAnalyzer')
-    ta.plot_confusion_matrix(title='TypesAnalyzer')
-    ca.plot_confusion_matrix(title='CombinedAnalyzer')
+    wa.plot_roc_auc(title='WeightsAnalyzer')
+    sa.plot_roc_auc(title='SumsAnalyzer')
+    ta.plot_roc_auc(title='TypesAnalyzer')
+    ca.plot_roc_auc(title='CombinedAnalyzer')
 
 
-users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
+# users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
+#
+# fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
+# ua = UsersAnalyzer(fp, flags='s', test_size=0.4)
+#
+# ua.print_scores()
+# ua.plot_confusion_matrix()
+# ua.plot_roc_auc()
 
-fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
-ua = UsersAnalyzer(fp, flags='s', test_size=0.4)
+fp = FingerPrint(Har.from_csv('./har_fit_old'), types=True)
+rd = ResponseData(Har.from_csv('./har_random_old'), types=True)
+ta = TypesAnalyzer(fp, rd, .5)
 
-ua.print_scores()
-ua.plot_confusion_matrix()
-ua.plot_roc_auc()
+plt.figure()
+ta.plot_roc_auc(title='WeightsAnalyzer')
