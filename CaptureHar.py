@@ -851,4 +851,5 @@ rd = ResponseData(Har.from_csv('./har_random_old'), types=True)
 ta = TypesAnalyzer(fp, rd, .5)
 
 plt.figure()
-ta.plot_roc_auc(title='WeightsAnalyzer')
+ta.plot_roc_auc()
+ta.plot_confusion_matrix()
