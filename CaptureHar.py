@@ -14,7 +14,9 @@ from selenium.webdriver.common.by import By
 from browsermobproxy import Server
 from collections import Counter
 from sklearn import svm
-from sklearn.linear_model import SGDClassifier, Perceptron, LogisticRegression, LogisticRegressionCV
+from sklearn import naive_bayes
+from sklearn.linear_model import SGDClassifier, Perceptron, LogisticRegression, LogisticRegressionCV, \
+    PassiveAggressiveClassifier
 from sklearn import neighbors
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, auc, roc_curve
@@ -674,12 +676,13 @@ class UsersAnalyzer:
         self.y_fit_true = __
 
         # clf = OneVsRestClassifier(svm.SVC(gamma='scale', probability=True)).fit(self.x_fit, self.y_fit_true)
-        clf = [svm.SVC(gamma='scale', kernel='rbf', max_iter=5000).fit(self.x_fit, self.y_fit_true),
+        clf = [svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true),
                SGDClassifier().fit(self.x_fit, self.y_fit_true),
                Perceptron().fit(self.x_fit, self.y_fit_true),
                LogisticRegression(solver='lbfgs', multi_class='auto').fit(self.x_fit, self.y_fit_true),
-               svm.LinearSVC(max_iter=5000).fit(self.x_fit, self.y_fit_true),
-               LogisticRegressionCV(cv=5, multi_class='auto').fit(self.x_fit, self.y_fit_true)]
+               svm.LinearSVC().fit(self.x_fit, self.y_fit_true),
+               LogisticRegressionCV(cv=5, multi_class='auto').fit(self.x_fit, self.y_fit_true),
+               PassiveAggressiveClassifier().fit(self.x_fit, self.y_fit_true)]
 
         return clf
 
@@ -693,7 +696,10 @@ class UsersAnalyzer:
         colors = ['b', 'g', 'r', 'c']
         linestyles = ['-', '--', '-.', ':']
         clf_names = {0: 'SVC', 1: 'SGDClassifier', 2: 'Perceptron',
-                     3: 'LogisticRegression', 3: 'LinearSVC', 4: 'LogisticRegressionCV'}
+                     3: 'LogisticRegression', 4: 'LinearSVC', 5: 'LogisticRegressionCV',
+                     6: 'PassiveAggressiveClassifier'}
+
+        fig, ax = plt.subplots(2, 3, sharey=True, squeeze=True)
 
         for i in range(len(self.clf) - 1):
             y_score = self.clf[i].decision_function(self.x_predict)
@@ -701,23 +707,23 @@ class UsersAnalyzer:
             tpr = dict()
             roc_auc = dict()
 
-            plt.figure()
-            plt.title(clf_names[i])
+            ax.ravel()[i].set_title(clf_names[i])
 
             for j in range(len(self.data)):
                 fpr[j], tpr[j], _ = roc_curve(self.y_predict_true, y_score[:, j], pos_label=j)
                 roc_auc[j] = auc(fpr[j], tpr[j])
 
-                plt.plot(fpr[j], tpr[j], color=colors[j], linestyle=linestyles[j], lw=2,
-                         label=f'{j}  area = {roc_auc[j]:.2f}')
-                plt.plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
-                plt.xlim([0.0, 1.0])
-                plt.ylim([0.0, 1.05])
-                plt.xlabel('False Positive Rate')
-                plt.ylabel('True Positive Rate')
-                plt.legend(loc="lower right")
+                ax.ravel()[i].plot(fpr[j], tpr[j], color=colors[j], linestyle=linestyles[j], lw=2,
+                                   label=f'{roc_auc[j]:.2f}')
+                ax.ravel()[i].plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
+                ax.ravel()[i].set_xlim([0.0, 1.0])
+                ax.ravel()[i].set_ylim([0.0, 1.05])
+                ax.ravel()[i].legend()
 
-            plt.show()
+        fig.text(.5, .04, 'False Positive Rate', ha='center')
+        fig.text(.04, .5, 'True Positive Rate', va='center', rotation='vertical')
+        handles, labels = ax.ravel()[0].get_legend_handles_labels()
+        fig.legend(handles=handles, labels=[f'User{i}' for i in range(len(self.data))])
 
 
     def plot_confusion_matrix(self, title=None, cmap=plt.cm.Blues):
