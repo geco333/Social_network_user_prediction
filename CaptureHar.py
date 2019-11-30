@@ -230,7 +230,7 @@ class Har:
 
 
 class FingerPrint:
-    def __init__(self, hars, types: bool = False):
+    def __init__(self, hars):
         self.hars = hars
         self.length = len(hars)
         self.sums = []
@@ -240,9 +240,8 @@ class FingerPrint:
         self._init_data()
         self._init_weights()
 
-        if types:
-            self.types_counts = self._gather_types()
-            self.types = self._get_types()
+        self.types_counts = self._gather_types()
+        self.types = self._get_types()
 
 
     def _gather_types(self):
@@ -305,7 +304,7 @@ class FingerPrint:
 
 
 class ResponseData:
-    def __init__(self, hars: list, types: bool = False):
+    def __init__(self, hars: list):
         self.hars = hars
         self.length = len(hars)
         self.sums = []
@@ -313,8 +312,7 @@ class ResponseData:
 
         self._init_data()
 
-        if types:
-            self.types_counts = self._gather_types()
+        self.types_counts = self._gather_types()
 
 
     def _init_data(self):
@@ -863,7 +861,7 @@ def run_analyzers(fp, rd):
 
 users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
 
-fp = [FingerPrint(Har.from_csv(user), types=True) for user in users]
-ua = UsersAnalyzer(fp, flags='s', test_size=0.4)
+fp = [FingerPrint(Har.from_csv(user)) for user in users]
+ua = UsersAnalyzer(fp, flags='t', test_size=0.4)
 
 ua.plot_roc_auc()
