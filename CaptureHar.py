@@ -296,14 +296,12 @@ class FingerPrint:
             self.sessions.append(session)
             self.sums.append(session_sums)
 
-
-    def _flatten_sessions(self):
-        return [row for session in self.sessions for row in session]
+        self.sessions = np.array(self.sessions)
 
 
     def _init_weights(self):
-        flat_sessions = self._flatten_sessions()
-        self.weights = Counter(flat_sessions)
+        _ = np.concatenate(self.sessions)
+        self.weights = np.unique(_, return_counts=True, axis=0)
 
 
 class ResponseData:
@@ -633,30 +631,27 @@ class UsersAnalyzer:
 
     def _init(self):
         if 't' in self.flags:
-            _ = reduce(lambda a, b: a + b, [x.types_counts for x in self.data])
+            _ = np.concatenate([x.types_counts for x in self.data])
+            self.x_fit = self.dict_vectorizer.fit_transform(_)
 
-            if type(self.x_fit) == np.ndarray:
-                np.concatenate([self.x_fit, _], axis=1)
-            else:
-                self.x_fit = self.dict_vectorizer.fit_transform(_)
         if 's' in self.flags:
-            _ = reduce(lambda a, b: a + b, [x.sums for x in self.data])
+            _ = np.concatenate([x.sums for x in self.data])
 
             if type(self.x_fit) == np.ndarray:
-                _ = np.array(_).reshape(self.x_fit.shape[0], 2)
-                np.concatenate([self.x_fit, _], axis=1)
+                _ = _.reshape(self.x_fit.shape[0], 2)
+                self.x_fit = np.concatenate([self.x_fit, _], axis=1)
             else:
-                self.x_fit = np.array(_)
+                self.x_fit = _
+
         if 'w' in self.flags:
-            _ = np.array(reduce(lambda a, b: a + b, [x.weights for x in self.data]))
+            _ = np.concatenate([x.sessions for x in self.data])
 
             if type(self.x_fit) == np.ndarray:
-                np.concatenate([self.x_fit, _])
+                self.x_fit = np.concatenate([self.x_fit, _])
             else:
                 self.x_fit = np.array(_)
 
-        self.y_fit_true = np.array(reduce(lambda a, b: a + b,
-                                          [[i] * len(self.data[i].types_counts) for i in range(len(self.data))]))
+        self.y_fit_true = np.concatenate([[i] * len(self.data[i].sessions) for i in range(len(self.data))])
 
 
     def _classify(self, test_size):
@@ -675,13 +670,12 @@ class UsersAnalyzer:
         self.x_fit = _
         self.y_fit_true = __
 
-        # clf = OneVsRestClassifier(svm.SVC(gamma='scale', probability=True)).fit(self.x_fit, self.y_fit_true)
         clf = [svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true),
                SGDClassifier().fit(self.x_fit, self.y_fit_true),
                Perceptron().fit(self.x_fit, self.y_fit_true),
-               LogisticRegression(solver='lbfgs', multi_class='auto').fit(self.x_fit, self.y_fit_true),
+               LogisticRegression(solver='lbfgs', multi_class='auto', max_iter=100000).fit(self.x_fit, self.y_fit_true),
                svm.LinearSVC().fit(self.x_fit, self.y_fit_true),
-               LogisticRegressionCV(cv=5, multi_class='auto').fit(self.x_fit, self.y_fit_true),
+               LogisticRegressionCV(cv=5, multi_class='auto', max_iter=100000).fit(self.x_fit, self.y_fit_true),
                PassiveAggressiveClassifier().fit(self.x_fit, self.y_fit_true)]
 
         return clf
@@ -695,11 +689,13 @@ class UsersAnalyzer:
     def plot_roc_auc(self):
         colors = ['b', 'g', 'r', 'c']
         linestyles = ['-', '--', '-.', ':']
+        classes = unique_labels(self.y_fit_true, self.y_predict_true)
         clf_names = {0: 'SVC', 1: 'SGDClassifier', 2: 'Perceptron',
                      3: 'LogisticRegression', 4: 'LinearSVC', 5: 'LogisticRegressionCV',
                      6: 'PassiveAggressiveClassifier'}
+        auc_sums = [0] * len(self.clf)
 
-        fig, ax = plt.subplots(2, 3, sharey=True, squeeze=True)
+        fig, ax = plt.subplots(2, 6)
 
         for i in range(len(self.clf) - 1):
             y_score = self.clf[i].decision_function(self.x_predict)
@@ -707,23 +703,41 @@ class UsersAnalyzer:
             tpr = dict()
             roc_auc = dict()
 
-            ax.ravel()[i].set_title(clf_names[i])
-
             for j in range(len(self.data)):
                 fpr[j], tpr[j], _ = roc_curve(self.y_predict_true, y_score[:, j], pos_label=j)
                 roc_auc[j] = auc(fpr[j], tpr[j])
+                auc_sums[i] += roc_auc[j]
 
-                ax.ravel()[i].plot(fpr[j], tpr[j], color=colors[j], linestyle=linestyles[j], lw=2,
-                                   label=f'{roc_auc[j]:.2f}')
-                ax.ravel()[i].plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
-                ax.ravel()[i].set_xlim([0.0, 1.0])
-                ax.ravel()[i].set_ylim([0.0, 1.05])
-                ax.ravel()[i].legend()
+                ax[0, i].plot(fpr[j], tpr[j], color=colors[j], linestyle=linestyles[j], lw=2,
+                              label=f'{roc_auc[j]:.2f}')
+                ax[0, i].plot([0, 1], [0, 1], lw=1, color='k', linestyle='-')
+                ax[0, i].set_xlim([0.0, 1.0])
+                ax[0, i].set_ylim([0.0, 1.05])
+                ax[0, i].legend()
 
-        fig.text(.5, .04, 'False Positive Rate', ha='center')
-        fig.text(.04, .5, 'True Positive Rate', va='center', rotation='vertical')
-        handles, labels = ax.ravel()[0].get_legend_handles_labels()
-        fig.legend(handles=handles, labels=[f'User{i}' for i in range(len(self.data))])
+            cm = confusion_matrix(self.y_predict_true, self.predictions[i])
+            ax[1, i].imshow(cm, interpolation='nearest',
+                            extent=[-.5, cm.shape[1] - .5, 0, cm.shape[0]],
+                            cmap=plt.cm.Blues)
+            ax[1, i].set(xticks=np.arange(cm.shape[1]),
+                         yticks=np.flip(np.arange(cm.shape[0]) + .5),
+                         xticklabels=classes, yticklabels=classes)
+
+            ax[1, i].set_ylim([0, 4])
+            thresh = cm.max() / 2.
+
+            for k in range(cm.shape[0]):
+                for l in range(cm.shape[1]):
+                    ax[1, i].text(l, k + .5, format(cm[cm.shape[0] - k - 1, l], 'd'),
+                                  ha="center", va="center",
+                                  color="red" if cm[k, l] > thresh else "green")
+
+        for i in range(len(self.clf) - 1):
+            color = 'g' if auc_sums[i] == max(auc_sums) else 'k'
+            ax[0, i].set_title(f'{clf_names[i]}\n{auc_sums[i]:.2f}', color=color)
+
+        # ax[1, 0].text(.5, .04, 'False Positive Rate', ha='center')
+        # ax[1, 0].text(.04, .5, 'True Positive Rate', va='center', rotation='vertical')
 
 
     def plot_confusion_matrix(self, title=None, cmap=plt.cm.Blues):
@@ -739,7 +753,6 @@ class UsersAnalyzer:
         fig, ax = plt.subplots()
         im = ax.imshow(cm, interpolation='nearest', extent=[-.5, cm.shape[1] - .5, -.5, cm.shape[0] - .5], cmap=cmap)
         ax.figure.colorbar(im, ax=ax)
-        # We want to show all ticks...
         ax.set(xticks=np.arange(cm.shape[1]),
                yticks=np.flip(np.arange(cm.shape[0])),
                # ... and label them with the respective list entries
@@ -748,11 +761,9 @@ class UsersAnalyzer:
                ylabel='True label',
                xlabel='Predicted label')
 
-        # Rotate the tick labels and set their alignment.
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
                  rotation_mode="anchor")
 
-        # Loop over data dimensions and create text annotations.
         thresh = cm.max() / 2.
 
         for i in range(cm.shape[0]):
