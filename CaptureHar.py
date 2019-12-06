@@ -1,3 +1,4 @@
+import configparser
 import json, re, os, random, logging, time, traceback
 from functools import reduce
 import pandas as pd
@@ -671,7 +672,7 @@ class UsersAnalyzer:
         clf = [svm.SVC(gamma='scale', kernel='rbf').fit(self.x_fit, self.y_fit_true),
                SGDClassifier().fit(self.x_fit, self.y_fit_true),
                Perceptron().fit(self.x_fit, self.y_fit_true),
-               LogisticRegression(solver='lbfgs', multi_class='auto', max_iter=100000).fit(self.x_fit, self.y_fit_true),
+               LogisticRegression(solver='lbfgs', multi_class='auto').fit(self.x_fit, self.y_fit_true),
                svm.LinearSVC().fit(self.x_fit, self.y_fit_true),
                LogisticRegressionCV(cv=5, multi_class='auto', max_iter=100000).fit(self.x_fit, self.y_fit_true),
                PassiveAggressiveClassifier().fit(self.x_fit, self.y_fit_true)]
@@ -722,13 +723,12 @@ class UsersAnalyzer:
                          xticklabels=classes, yticklabels=classes)
 
             ax[1, i].set_ylim([0, 4])
-            thresh = cm.max() / 2.
 
             for k in range(cm.shape[0]):
                 for l in range(cm.shape[1]):
-                    ax[1, i].text(l, k + .5, format(cm[cm.shape[0] - k - 1, l], 'd'),
-                                  ha="center", va="center",
-                                  color="red" if cm[k, l] > thresh else "green")
+                    ax[1, i].text(l, k + .5,
+                                  f'{100 * cm[cm.shape[0] - k - 1, l] / self.data[i - 2].sessions.shape[0]:.0f}%',
+                                  ha="center", va="center")
 
         for i in range(len(self.clf) - 1):
             color = 'g' if auc_sums[i] == max(auc_sums) else 'k'
@@ -847,7 +847,10 @@ def capture_har_data(n, page_func=None, page=None):
         # Har.capture_n_har_files(path='./har_random', n=1, rnd=True)
 
 
-def run_analyzers(fp, rd):
+def run_analyzers():
+    fp = FingerPrint(Har.from_csv('./har_fit_old'))
+    rd = ResponseData(Har.from_csv('./har_random_old'))
+
     wa = WeightsAnalyzer(fp, rd)
     sa = SumsAnalyzer(fp, rd)
     ta = TypesAnalyzer(fp, rd)
@@ -859,9 +862,12 @@ def run_analyzers(fp, rd):
     ca.plot_roc_auc(title='CombinedAnalyzer')
 
 
-users = ['./har_fit_0', './har_fit_1', './har_fit_2', './har_fit_3']
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+users = config['GLOBAL']['USERS'].split()
 
 fp = [FingerPrint(Har.from_csv(user)) for user in users]
-ua = UsersAnalyzer(fp, flags='t', test_size=0.4)
+ua = UsersAnalyzer(fp, flags=config['USER_ANALYZER']['FLAGS'], test_size=float(config['USER_ANALYZER']['TEST_SIZE']))
 
 ua.plot_roc_auc()
