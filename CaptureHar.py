@@ -48,8 +48,7 @@ class Har:
 
 
     @staticmethod
-    def capture_n_har_files(path: str, page: str = None, n: int = 1, name: str = '', url: str = '', rnd: bool = False,
-                            page_func=''):
+    def capture_n_har_files():
         """Run n times:
             Create an Har class instance.
             Using BrowsermobProxy start recording har data from the browser.
@@ -67,36 +66,39 @@ class Har:
         :param url: The web site, use full address(exm: http://www.google.com).
         """
 
-        urls = ['https://www.tumblr.com/', 'https://findtheinvisiblecow.com/', 'https://theuselessweb.com/',
-                'https://www.linkedin.com/', 'https://www.reddit.com/', 'https://www.taringa.net/',
-                'https://the-dots.com/', 'https://www.youtube.com/',
-                'https://www.reverbnation.com/', 'https://www.flixster.com/', 'https://www.care2.com/',
-                'https://www.ravelry.com/account/login'
-                'http://hackertyper.com/', 'https://www.instagram.com/', 'https://twitter.com/',
-                'https://www.pinterest.com/']
+        # Get the functions parameters from config.ini
+        conf = config['CAPTURE_N_HAR_FILES']
+        urls = conf['URLS'].split()
 
+        # If folder is empty set last_i = 0
         try:
-            _ = re.findall('\\d+', os.listdir(f'{path}').__str__())
+            _ = re.findall('\\d+', os.listdir(conf['PATH']).__str__())
             __ = list(map(lambda x: int(x), _))
             last_i = max(__) + 1
         except ValueError:
             last_i = 0
 
-        for i in range(last_i, last_i + n):
-            if rnd:
+        # Run n times.
+        # Create an HAR object.
+        # Enter url and Capture data from the.
+        # Build the HAR data and export it to a csv file.
+        for i in range(last_i, last_i + int(conf['N'])):
+            if conf.getboolean('RND'):
                 url = urls[random.randrange(len(urls))]
+            else:
+                url = conf['URL']
 
             print(str(i) + ' ' + url)
 
             har = Har()
-            har._capture_data(name, url, page_func=page_func, page=page)
+            har._capture_data(url, conf['NAME'], conf['PAGE'])
             har._build_df()
             har.quit()
 
-            har.export_df(f'{path}/har_df_{i}.csv')
+            har.export_df(config['CAPTURE_N_HAR_FILES']['PATH'] + f'/_{i}.csv')
 
 
-    def _capture_data(self, name, url, page_func, page):
+    def _capture_data(self, url, name, page):
         """
         :param name: The har output name.
         :param url: The website to capture har data from.
@@ -112,8 +114,7 @@ class Har:
 
     def __init__(self, path=None):
         if path is None:
-            self.server = Server(
-                'C:/Users/Geco/AngularProjects/BuildUrlDatabase/py/browsermob-proxy-2.1.4/bin/browsermob-proxy.bat')
+            self.server = Server(config['HAR']['SERVER_PATH'])
             self.server.start()
             self.proxy = self._start_proxy()
             self.driver = self._start_chrome_driver()
@@ -169,7 +170,7 @@ class Har:
         """
         self.driver.quit()
         self.server.stop()
-        os.system("taskkill /f /im java.exe")
+        # os.system("taskkill /f /im java.exe")
 
 
     def export_har(self):
@@ -773,11 +774,13 @@ class UsersAnalyzer:
         fig.tight_layout()
 
 
-def page_func(driver, page):
+def page_func(driver: webdriver, page: str):
     """Passed to the Har.capture_n_har_files procedure for selenium to run
     on the web page.
     """
     timeout = 10
+    username = config['PAGE_FUNC']['username']
+    password = config['PAGE_FUNC']['password']
 
     email_xpath = '//input[@id="email"] | //input[@name="email"]'
     pass_xpath = '//input[@id="pass"] | //input[@name="pass"]'
@@ -799,8 +802,8 @@ def page_func(driver, page):
         except selenium.common.exceptions.TimeoutException:
             print('Login TimeoutException.')
 
-    driver.find_element_by_xpath(email_xpath).send_keys('gggppp282@gmail.com')
-    driver.find_element_by_xpath(pass_xpath).send_keys('g31012310G')
+    driver.find_element_by_xpath(email_xpath).send_keys(username)
+    driver.find_element_by_xpath(pass_xpath).send_keys(password)
     driver.find_element_by_xpath(login_xpath).click()
 
     # Make sure all elements exist on page before moving on.
@@ -834,17 +837,16 @@ def page_func(driver, page):
     driver.find_element_by_xpath(page_xpath).click()
 
 
-def capture_har_data(n, page_func=None, page=None):
+def capture_har_data():
     """Utility procedure to create n HAR files, both for the fingerprint
         and random.
     """
-    for i in range(n):
-        print('\nCapturing FingerPrint HAR data...')
-        Har.capture_n_har_files(path='./har_fit', n=1, url='https://www.facebook.com', name='facebook',
-                                page_func=page_func, page=page)
+    conf = config['CAPTURE_HAR_DATA']
 
-        # print('\nCapturing ResponseData HAR data...')
-        # Har.capture_n_har_files(path='./har_random', n=1, rnd=True)
+    for i in range(conf['n']):
+        print('\nCapturing FingerPrint HAR data...')
+        Har.capture_n_har_files(path=conf['PATH'], n=1, url='https://www.facebook.com', name='facebook',
+                                page_func=conf['PAGE_FUNC'], page=conf['PAGE'])
 
 
 def run_analyzers():
@@ -862,12 +864,17 @@ def run_analyzers():
     ca.plot_roc_auc(title='CombinedAnalyzer')
 
 
+def users_analyzers():
+    users = config['GLOBAL']['USERS'].split()
+
+    fp = [FingerPrint(Har.from_csv(user)) for user in users]
+    ua = UsersAnalyzer(fp, flags=config['USER_ANALYZER']['FLAGS'],
+                       test_size=float(config['USER_ANALYZER']['TEST_SIZE']))
+
+    ua.plot_roc_auc()
+
+
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-users = config['GLOBAL']['USERS'].split()
-
-fp = [FingerPrint(Har.from_csv(user)) for user in users]
-ua = UsersAnalyzer(fp, flags=config['USER_ANALYZER']['FLAGS'], test_size=float(config['USER_ANALYZER']['TEST_SIZE']))
-
-ua.plot_roc_auc()
+Har.capture_n_har_files()
