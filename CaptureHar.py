@@ -9,12 +9,14 @@ import requests
 import selenium
 from seleniumwire import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, average_precision_score
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from browsermobproxy import Server
 from collections import Counter
 from sklearn import svm
+from sklearn.metrics import f1_score
 from sklearn import naive_bayes
 from sklearn.linear_model import SGDClassifier, Perceptron, LogisticRegression, LogisticRegressionCV, \
     PassiveAggressiveClassifier
@@ -82,23 +84,16 @@ class Har:
         # Create an HAR object.
         # Enter url and Capture data from the.
         # Build the HAR data and export it to a csv file.
-        for i in range(last_i, last_i + int(conf['N'])):
-            if conf.getboolean('RND'):
-                url = urls[random.randrange(len(urls))]
-            else:
-                url = conf['URL']
+        url = conf['URL']
 
-            print(str(i) + ' ' + url)
+        print('Working...')
 
-            har = Har()
-            har._capture_data(url, conf['NAME'], conf['PAGE'])
-            har._build_df()
-            har.quit()
-
-            har.export_df(config['CAPTURE_N_HAR_FILES']['PATH'] + f'/_{i}.csv')
+        har = Har()
+        har._capture_data(url, conf['NAME'], conf['PAGE'], har)
+        har.quit()
 
 
-    def _capture_data(self, url, name, page):
+    def _capture_data(self, url, name, page, har):
         """
         :param name: The har output name.
         :param url: The website to capture har data from.
@@ -109,7 +104,7 @@ class Har:
         self.driver.get(url)
 
         if page_func != '':
-            page_func(self.driver, page)
+            page_func(self.driver, page, har)
 
 
     def __init__(self, path=None):
@@ -281,15 +276,16 @@ class FingerPrint:
 
     def _init_data(self):
         for har in self.hars:
-            session_sums = [0, 0]
+            session_sums = [0, 0, 0]
             session = []
 
-            for row in har[['response.bodySize', 'response.headersSize', 'time']].values:
+            for row in har[['request.headersSize', 'request.bodySize', 'time']].values:
                 row = tuple(row.tolist())
 
                 # Add to sums.
-                session_sums[0] += row[0]
-                session_sums[1] += row[1]
+                session_sums[0] += row[0]  # request.headersSize
+                session_sums[1] += row[1]  # request.bodySize
+                # session_sums[2] += row[2] # time
 
                 session.append(row)
 
@@ -616,9 +612,10 @@ class CombinedAnalyzer(Analyzer):
 
 
 class UsersAnalyzer:
-    def __init__(self, data: list, flags: str = 't', test_size: float = 0.25):
+    def __init__(self, fit_data: list, predict_data: list, flags: str = 't', test_size: float = 0.25):
         self.flags = flags
-        self.data = data
+        self.fit_data = fit_data
+        self.predict_data = predict_data
         self.dict_vectorizer = DictVectorizer(sparse=False)
         self.x_fit = []
         self.y_fit_true = []
@@ -631,31 +628,45 @@ class UsersAnalyzer:
 
     def _init(self):
         if 't' in self.flags:
-            _ = np.concatenate([x.types_counts for x in self.data])
+            _ = np.concatenate([x.types_counts for x in self.fit_data])
+            # __ = np.concatenate([x.types_counts for x in self.predict_data])
+
             self.x_fit = self.dict_vectorizer.fit_transform(_)
+            # self.x_predict = self.dict_vectorizer.transform(__)
 
         if 's' in self.flags:
-            _ = np.concatenate([x.sums for x in self.data])
+            _ = np.concatenate([x.sums for x in self.fit_data])
+            # __ = np.concatenate([x.sums for x in self.predict_data])
 
             if type(self.x_fit) == np.ndarray:
                 _ = _.reshape(self.x_fit.shape[0], 2)
+                # __ = __.reshape(self.x_predict.shape[0], 2)
+
                 self.x_fit = np.concatenate([self.x_fit, _], axis=1)
+                # self.x_predict = np.concatenate([self.x_predict, __], axis=1)
             else:
                 self.x_fit = _
+                # self.x_predict = __
 
         if 'w' in self.flags:
-            _ = np.concatenate([x.sessions for x in self.data])
+            _ = np.concatenate([x.sessions for x in self.fit_data])
+            # __ = np.concatenate([x.sessions for x in self.predict_data])
 
             if type(self.x_fit) == np.ndarray:
                 self.x_fit = np.concatenate([self.x_fit, _])
+                # self.x_predict = np.concatenate([self.x_fit, __])
             else:
                 self.x_fit = np.array(_)
+                # self.x_predict = np.array(__)
 
-        self.y_fit_true = np.concatenate([[i] * len(self.data[i].sessions) for i in range(len(self.data))])
+        self.y_fit_true = np.concatenate([[i] * len(self.fit_data[i].sessions) for i in range(len(self.fit_data))])
+        self.y_predict_true = np.concatenate(
+            [[i] * len(self.predict_data[i].sessions) for i in range(len(self.predict_data))])
 
 
     def _classify(self, test_size):
-        sss = StratifiedShuffleSplit(n_splits=len(self.data), test_size=test_size)
+        # Split fit data to fit and test parts.
+        sss = StratifiedShuffleSplit(n_splits=len(self.fit_data), test_size=test_size)
         _, __ = [], []
 
         for i, (fit_i, train_i) in enumerate(sss.split(self.x_fit, self.y_fit_true)):
@@ -681,9 +692,16 @@ class UsersAnalyzer:
         return clf
 
 
-    def print_scores(self):
-        print(classification_report(self.y_predict_true, self.predictions, labels=range(len(self.data)),
-                                    target_names=[str(i) for i in range(len(self.data))]))
+    def get_score(self):
+        score = []
+
+        for i in range(len(self.predictions)):
+            score.append(balanced_accuracy_score(self.y_predict_true, self.predictions[i]))
+
+        # print(classification_report(self.y_predict_true, self.predictions[i], labels=range(len(self.fit_data)),
+        #                             target_names=[str(i) for i in range(len(self.fit_data))]))
+
+        return score
 
 
     def plot_roc_auc(self):
@@ -703,7 +721,7 @@ class UsersAnalyzer:
             tpr = dict()
             roc_auc = dict()
 
-            for j in range(len(self.data)):
+            for j in range(len(self.predict_data)):
                 fpr[j], tpr[j], _ = roc_curve(self.y_predict_true, y_score[:, j], pos_label=j)
                 roc_auc[j] = auc(fpr[j], tpr[j])
                 auc_sums[i] += roc_auc[j]
@@ -724,11 +742,12 @@ class UsersAnalyzer:
                          xticklabels=classes, yticklabels=classes)
 
             ax[1, i].set_ylim([0, 4])
+            ax[1, i].set_title(f'{self.predictions[i].shape[0]}')
 
             for k in range(cm.shape[0]):
                 for l in range(cm.shape[1]):
                     ax[1, i].text(l, k + .5,
-                                  f'{100 * cm[cm.shape[0] - k - 1, l] / self.data[i - 2].sessions.shape[0]:.0f}%',
+                                  f'{cm[cm.shape[0] - k - 1, l]}',
                                   ha="center", va="center")
 
         for i in range(len(self.clf) - 1):
@@ -774,11 +793,11 @@ class UsersAnalyzer:
         fig.tight_layout()
 
 
-def page_func(driver: webdriver, page: str):
+def page_func(driver: webdriver, page: str, har: Har):
     """Passed to the Har.capture_n_har_files procedure for selenium to run
     on the web page.
     """
-    timeout = 10
+    timeout = 5
     username = config['PAGE_FUNC']['username']
     password = config['PAGE_FUNC']['password']
 
@@ -786,6 +805,7 @@ def page_func(driver: webdriver, page: str):
     pass_xpath = '//input[@id="pass"] | //input[@name="pass"]'
     login_xpath = '//input[@value="Log In"] | //button[@name="login"]'
     page_xpath = '//span[text()="' + page + '"]'
+    home_xpath = '//a[text()="Home"]'
 
     # Make sure all elements exist on page before moving on.
     run = True
@@ -795,46 +815,75 @@ def page_func(driver: webdriver, page: str):
             WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, email_xpath)))
             WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, login_xpath)))
             WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, pass_xpath)))
-
             run = False
+
         except selenium.common.exceptions.NoSuchElementException:
             print('Login NoSuchElementException.')
         except selenium.common.exceptions.TimeoutException:
             print('Login TimeoutException.')
+        except selenium.common.exceptions.ElementNotInteractableException:
+            print('Login ElementNotInteractableException.')
 
     driver.find_element_by_xpath(email_xpath).send_keys(username)
     driver.find_element_by_xpath(pass_xpath).send_keys(password)
     driver.find_element_by_xpath(login_xpath).click()
 
-    # Make sure all elements exist on page before moving on.
     run = True
 
     while run:
         try:
-            WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, '//div[text()="Pages"]')))
-
+            WebDriverWait(driver, timeout).until(
+                EC.presence_of_element_located((By.XPATH, '//div[text()="Pages"]')))
+            driver.find_element_by_xpath('//div[text()="Pages"]').click()
             run = False
+
         except selenium.common.exceptions.NoSuchElementException:
             print('Login NoSuchElementException.')
         except selenium.common.exceptions.TimeoutException:
             print('Login TimeoutException.')
+        except selenium.common.exceptions.ElementNotInteractableException:
+            print('ElementNotInteractableException')
 
-    driver.find_element_by_xpath('//div[text()="Pages"]').click()
+    for i in range(int(config['CAPTURE_N_HAR_FILES']['N'])):
+        pages_window = driver.current_window_handle
 
-    # Make sure all elements exist on page before moving on.
-    run = True
+        run = True
 
-    while run:
-        try:
-            WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, page_xpath)))
+        while run:
+            try:
+                WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.XPATH, page_xpath)))
+                driver.find_element_by_xpath(page_xpath).click()
+                run = False
 
-            run = False
-        except selenium.common.exceptions.NoSuchElementException:
-            print('Login NoSuchElementException.')
-        except selenium.common.exceptions.TimeoutException:
-            print('Login TimeoutException.')
+            except selenium.common.exceptions.NoSuchElementException:
+                print('Login NoSuchElementException.')
+            except selenium.common.exceptions.TimeoutException:
+                print('Login TimeoutException.')
+            except selenium.common.exceptions.ElementNotInteractableException:
+                print('ElementNotInteractableException')
 
-    driver.find_element_by_xpath(page_xpath).click()
+        run = True
+
+        while run:
+            try:
+                new_window = driver.window_handles[1]
+                driver.switch_to_window(new_window)
+                driver.close()
+                driver.switch_to_window(pages_window)
+
+                har._build_df()
+                har.export_df(config['CAPTURE_N_HAR_FILES']['PATH'] + f'/_{i}.csv')
+
+                run = False
+
+            except selenium.common.exceptions.NoSuchElementException:
+                print('Login NoSuchElementException.')
+            except selenium.common.exceptions.TimeoutException:
+                print('Login TimeoutException.')
+            except selenium.common.exceptions.ElementNotInteractableException:
+                print('Login ElementNotInteractableException.')
+
+        print(f'{i}')
 
 
 def capture_har_data():
@@ -874,7 +923,26 @@ def users_analyzers():
     ua.plot_roc_auc()
 
 
+# Setup settings from congig file.
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-Har.capture_n_har_files()
+# Setup fit and predict data.
+fit_users = ['./har_0', './har_1', './har_2', './har_3']
+predict_users = ['./har_a0', './har_a1', './har_a2', './har_a3']
+
+fit = [FingerPrint(Har.from_csv(user)) for user in fit_users]
+predict = [FingerPrint(Har.from_csv(user)) for user in predict_users]
+
+n = 10
+score = []
+
+for i in range(n):
+    ua = UsersAnalyzer(fit, fit, flags='s', test_size=0.25)
+    score.append(ua.get_score())
+    # ua.plot_roc_auc()
+
+score = np.array(score)
+
+print(score)
+print(np.array([np.average(score[:, i]) for i in range(score.shape[1])]))
