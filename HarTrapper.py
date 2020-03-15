@@ -181,13 +181,17 @@ class HarTrapper:
             try:
                 WebDriverWait(self.driver, timeout).until(
                     EC.presence_of_element_located((By.XPATH, '//div[text()="Pages"]')))
+
                 self.driver.find_element_by_xpath('//div[text()="Pages"]').click()
+
                 run = False
 
             except selenium.common.exceptions.NoSuchElementException:
                 print('Login NoSuchElementException.')
+
             except selenium.common.exceptions.TimeoutException:
                 print('Login TimeoutException.')
+
             except selenium.common.exceptions.ElementNotInteractableException:
                 print('ElementNotInteractableException')
 
@@ -198,9 +202,9 @@ class HarTrapper:
         """
         timeout = 5
 
+        liked_xpath = '//*[text() = "Liked Pages"]'
         page_xpath = '//span[text()="' + self.PAGE + '"]'
         home_xpath = '//a[text()="Home"]'
-
         # Make sure all elements exist on page before moving on.
         pages_window = self.driver.current_window_handle
 
@@ -208,6 +212,22 @@ class HarTrapper:
 
         while run:
             try:
+                WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.XPATH, liked_xpath)))
+                self.driver.find_element_by_xpath(liked_xpath).click()
+                run = False
+
+            except selenium.common.exceptions.NoSuchElementException:
+                print('Login NoSuchElementException.')
+            except selenium.common.exceptions.TimeoutException:
+                print('Login TimeoutException.')
+            except selenium.common.exceptions.ElementNotInteractableException:
+                print('ElementNotInteractableException')
+
+        run = True
+
+        while run:
+            try:
+
                 WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.XPATH, page_xpath)))
                 self.driver.find_element_by_xpath(page_xpath).click()
                 run = False
